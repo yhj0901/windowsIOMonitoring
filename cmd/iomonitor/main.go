@@ -24,7 +24,7 @@ func main() {
 	// 버전 정보 출력
 	if *versionFlag {
 		fmt.Println("Windows IO 모니터링 도구 v0.1.0")
-		fmt.Println("Copyright © 2023")
+
 		os.Exit(0)
 	}
 

@@ -79,7 +79,7 @@ func (m *Monitor) watchRecursive(path string) error {
 			err = m.watcher.Add(walkPath)
 			m.watchMutex.Unlock()
 			if err == nil {
-				log.Printf("감시 시작: %s\n", walkPath)
+				// log.Printf("감시 시작: %s\n", walkPath)
 			}
 		}
 		return nil
@@ -148,7 +148,6 @@ func (m *Monitor) processEvents() {
 					}
 				}
 			}
-
 			// 필터에 맞는 파일 이벤트만 처리
 			if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Remove) != 0 {
 				ext := strings.ToLower(filepath.Ext(event.Name))
