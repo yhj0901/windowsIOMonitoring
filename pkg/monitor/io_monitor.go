@@ -108,6 +108,9 @@ func (m *Monitor) Start() error {
 
 	// 각 장치에 대해 재귀적 감시 설정
 	for _, device := range m.devices {
+		// 고루틴으로 경량 스레드로 비동기적으로 함수를 실행
+		// (재귀로 모니터링 디렉터리를 등록하는게 속도가 느리기 때문에 비동기로 실행) 
+		// 여기서 문제는 모니터링 등록 전에 들어오는 IO는 감지 못함 수초에서 수십초 걸릴수 있음
 		go func(dev string) {
 			log.Printf("%s 장치 모니터링 시작...\n", dev)
 			err := m.watchRecursive(dev)

@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yangheejun/windowsIOMonitoring/pkg/monitor"
+	"github.com/yhj0901/windowsIOMonitoring/pkg/monitor"
 )
 
 func main() {
@@ -24,7 +24,6 @@ func main() {
 	// 버전 정보 출력
 	if *versionFlag {
 		fmt.Println("Windows IO 모니터링 도구 v0.1.0")
-
 		os.Exit(0)
 	}
 
