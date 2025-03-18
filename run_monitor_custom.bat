@@ -12,6 +12,6 @@ echo 종료하려면 Ctrl+C를 누르세요.
 echo.
 
 REM 실행 파일 실행 (사용자 정의 옵션)
-iomonitor.exe -interval 10s -device "C:\,D:\" -filters ".exe,.dll,.sys"
+iomonitor.exe -interval 10s -device "C:\,D:\" -filters ".exe,.dll,.sys" -db "monitor.db"
 
 pause 

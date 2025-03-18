@@ -12,9 +12,12 @@ func main() {
 	log.Println("Windows IO 모니터링 시작")
 
 	// 프로그램 버전 정보
-	fmt.Println("Windows IO 모니터링 도구 v0.1.0")
-	fmt.Println("Copyright © 2023")
+	fmt.Println("Windows 파일 모니터링 도구 v0.1.3")
+	fmt.Println("Copyright © 2025 yangheejune")
 	fmt.Println()
+
+	// 디버깅 모드 설정 (환경 변수)
+	os.Setenv("DEBUG_MONITOR", "true")
 
 	// 현재 디렉토리 확인
 	dir, err := os.Getwd()
