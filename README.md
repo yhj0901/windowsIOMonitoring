@@ -21,7 +21,7 @@ Windows 시스템의 입출력(IO) 활동을 모니터링하는 Go 애플리케�
 
 ```bash
 # 저장소 클론
-git clone https://github.com/yangheejun/windowsIOMonitoring.git
+git clone https://github.com/yhj0901/windowsIOMonitoring.git
 cd windowsIOMonitoring
 
 # 의존성 설치
