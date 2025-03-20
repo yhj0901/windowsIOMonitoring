@@ -33,6 +33,7 @@ type Monitor struct {
 	dbPath      string
 	saveTimer   *time.Ticker
 	eventsMutex sync.Mutex
+	eventChan   chan FileEvent
 }
 
 // NewMonitor는 새로운 모니터 인스턴스를 생성합니다.
@@ -42,8 +43,9 @@ func NewMonitor(interval time.Duration) *Monitor {
 		devices:     []string{},
 		fileEvents:  []FileEvent{},
 		running:     false,
-		fileFilters: []string{".exe", ".dll"}, // 기본 필터
-		dbPath:      "monitor.db",             // 기본 데이터베이스 경로
+		fileFilters: []string{".exe", ".dll"},  // 기본 필터
+		dbPath:      "monitor.db",              // 기본 데이터베이스 경로
+		eventChan:   make(chan FileEvent, 100), // 이벤트 채널 버퍼 크기 100
 	}
 }
 
@@ -150,18 +152,15 @@ func (m *Monitor) Start() error {
 
 // periodicSave는 주기적으로 수집된 이벤트를 데이터베이스에 저장합니다.
 func (m *Monitor) periodicSave() {
-	for {
-		select {
-		case <-m.saveTimer.C:
-			if !m.running {
-				return
-			}
-
-			// 새로운 이벤트 저장
-			m.saveEventsToDatabase()
-
-			log.Printf("데이터베이스에 저장 완료 (interval: %s)\n", m.interval)
+	for range m.saveTimer.C {
+		if !m.running {
+			return
 		}
+
+		// 새로운 이벤트 저장
+		m.saveEventsToDatabase()
+
+		log.Printf("데이터베이스에 저장 완료 (interval: %s)\n", m.interval)
 	}
 }
 
@@ -273,15 +272,27 @@ func (m *Monitor) processEvents() {
 			if createEvent || removeEvent {
 				log.Printf("파일 %s: %s (타입: %s)\n", operation, event.Name, ext)
 
-				// 이벤트 기록
-				m.eventsMutex.Lock()
-				m.fileEvents = append(m.fileEvents, FileEvent{
+				// 파일 이벤트 생성
+				fileEvent := FileEvent{
 					Path:      event.Name,
 					Operation: operation,
 					Timestamp: time.Now(),
 					FileType:  ext,
-				})
+				}
+
+				// 이벤트 기록
+				m.eventsMutex.Lock()
+				m.fileEvents = append(m.fileEvents, fileEvent)
 				m.eventsMutex.Unlock()
+
+				// 이벤트 채널로 전송
+				select {
+				case m.eventChan <- fileEvent:
+					// 이벤트 전송 성공
+				default:
+					// 채널이 가득 찬 경우 (논블로킹)
+					log.Printf("이벤트 채널이 가득 참: %s", event.Name)
+				}
 
 				// 새 디렉터리가 생성된 경우 감시 대상에 추가
 				if createEvent && isDirectory(event.Name) {
@@ -330,6 +341,9 @@ func (m *Monitor) Stop() {
 	if m.db != nil {
 		m.db.Close()
 	}
+
+	// 이벤트 채널 닫기
+	close(m.eventChan)
 
 	log.Println("파일 모니터링 중지됨")
 }
@@ -399,4 +413,9 @@ func (m *Monitor) GetDevices() []string {
 // GetFileFilters는 현재 설정된 파일 확장자 필터 목록을 반환합니다.
 func (m *Monitor) GetFileFilters() []string {
 	return m.fileFilters
+}
+
+// EventChan은 모니터가 감지한 파일 이벤트를 구독할 수 있는 채널을 반환합니다.
+func (m *Monitor) EventChan() <-chan FileEvent {
+	return m.eventChan
 }

@@ -102,6 +102,7 @@ func (d *Database) SaveBatchFileEvents(events []FileEvent) error {
 
 	for _, event := range events {
 		_, err := stmt.Exec(
+			// 포맷 형식은 2006-01-02 15:04:05 형식으로 지정 이건 go 언어의 시간 포멧 지정 방식
 			event.Timestamp.Format("2006-01-02 15:04:05"),
 			event.Path,
 			event.Operation,
