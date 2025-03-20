@@ -17,44 +17,60 @@ type Database struct {
 	insertStmt *sql.Stmt
 }
 
-// NewDatabase는 새로운 SQLite 데이터베이스 연결을 생성합니다.
 func NewDatabase(dbPath string) (*Database, error) {
+	log.Printf("데이터베이스 초기화 시작. 경로: %s", dbPath)
+
 	// 디렉토리가 없으면 생성
 	dir := filepath.Dir(dbPath)
 	if err := createDirIfNotExists(dir); err != nil {
+		log.Printf("데이터베이스 디렉토리 생성 실패: %v", err)
 		return nil, err
 	}
 
+	log.Printf("SQLite 데이터베이스 연결 시도: %s", dbPath)
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
+		log.Printf("데이터베이스 연결 실패: %v", err)
 		return nil, err
 	}
 
+	// 연결 테스트
+	if err := db.Ping(); err != nil {
+		log.Printf("데이터베이스 연결 확인 실패: %v", err)
+		db.Close()
+		return nil, err
+	}
+
+	log.Printf("테이블 생성 시도")
 	// 테이블 생성
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS file_events (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			timestamp DATETIME NOT NULL,
-			path TEXT NOT NULL UNIQUE,
-			operation TEXT NOT NULL,
-			file_type TEXT NOT NULL
-		);
-	`)
+        CREATE TABLE IF NOT EXISTS file_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME NOT NULL,
+            path TEXT NOT NULL UNIQUE,
+            operation TEXT NOT NULL,
+            file_type TEXT NOT NULL
+        );
+    `)
 	if err != nil {
+		log.Printf("테이블 생성 실패: %v", err)
 		db.Close()
 		return nil, err
 	}
 
 	// 파일 이벤트 삽입 또는 업데이트 준비문 생성
+	log.Printf("SQL 준비문 생성 시도")
 	insertFileStmt, err := db.Prepare(`
-		INSERT OR REPLACE INTO file_events (timestamp, path, operation, file_type)
-		VALUES (?, ?, ?, ?);
-	`)
+        INSERT OR REPLACE INTO file_events (timestamp, path, operation, file_type)
+        VALUES (?, ?, ?, ?);
+    `)
 	if err != nil {
+		log.Printf("SQL 준비문 생성 실패: %v", err)
 		db.Close()
 		return nil, err
 	}
 
+	log.Printf("데이터베이스 초기화 성공")
 	return &Database{
 		db:         db,
 		insertStmt: insertFileStmt,
@@ -175,18 +191,26 @@ func (d *Database) GetFileEvents() ([]FileEvent, error) {
 	return events, nil
 }
 
-// 디렉토리가 없으면 생성하는 유틸리티 함수
+// createDirIfNotExists 함수 수정
 func createDirIfNotExists(dir string) error {
 	if dir == "" {
+		log.Printf("디렉토리 경로가 비어있음")
 		return nil // 현재 디렉토리인 경우
 	}
 
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
+	if stat, err := os.Stat(dir); os.IsNotExist(err) {
+		log.Printf("디렉토리 생성 시도: %s", dir)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
+			log.Printf("디렉토리 생성 실패: %v", err)
 			return fmt.Errorf("디렉토리 생성 실패: %v", err)
 		}
-		log.Printf("디렉토리 생성됨: %s", dir)
+		log.Printf("디렉토리 생성 성공: %s", dir)
+	} else if err != nil {
+		log.Printf("디렉토리 상태 확인 실패: %v", err)
+		return err
+	} else {
+		log.Printf("기존 디렉토리 확인: %s (권한: %v)", dir, stat.Mode())
 	}
 
 	return nil
